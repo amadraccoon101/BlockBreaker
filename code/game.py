@@ -6,15 +6,15 @@ import requests
 
 # Main class: inherit from tk.Canvas class\
 
-mapping = {"a":"ryyo.orr.rroyy.r",
-           "b":"yoo.oyrrooooo.y.",
+mapping = {"a":"bbbtbtyy.ryotott",
+           "b":"byy...o..tybtrbo",
            "c":"................",
-           "d":".oryryooooyoror.",
-           "e":"oy..oooyyyoryryr",
-           "f":"o..r.ro.oryoyooy",
+           "d":".o.yrb.yrb.tytyb",
+           "e":"byy...o..tybtrbo",
+           "f":"tttbotr.yttb.r.o",
            "g":"................",
-           "h":"ro.yr.r.y.y..rry",
-           "i":".ooo..r.roo.oryo",
+           "h":"b.boyryt...yrrbr",
+           "i":"tt.ybyo.b..obort",
            "j":"ooooy.yo..ro..oo",
            "k":"yyrrryooro..yyyo",
            "l":"o.r.ryo.ryorr..y",
@@ -72,6 +72,20 @@ class Game(tk.Canvas):
 
     ballSpeed = (fee % 9) + 1
     print("Ball speed: " + str(ballSpeed))
+
+    txidChars = list(txid)
+
+    f = open("1.txt", "w")
+    k = 0
+    while k < 14:
+        print(mapping.get(txidChars[k]))
+        f.write(mapping.get(txidChars[k]) + '\n')
+        k = k + 1
+    while k < 19:
+        f.write(mapping.get('7') + '\n')
+        k = k + 1
+    f.write(mapping.get('7'))
+    f.close()
 
     # Bricks properties
     bricks = []
