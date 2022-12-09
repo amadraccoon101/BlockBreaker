@@ -3,6 +3,8 @@ import random
 import math
 import copy
 import requests
+import numpy as np
+from PIL import Image, ImageDraw, ImageTk
 
 # Main class: inherit from tk.Canvas class\
 
@@ -115,7 +117,18 @@ class Game(tk.Canvas):
             self.screenWidth/2, self.screenHeight*4/5, text="00:00:00", fill="#cccccc", font=("Arial", 30), justify="center")
         self.shield = self.create_rectangle(0, 0, 0, 0, width=0)
         self.bar = self.create_rectangle(0, 0, 0, 0, fill="#7f8c8d", width=0)
-        self.ball = self.create_oval(0, 0, 0, 0, width=0)
+        
+        #image1 = Image.open("Bitcoin-Logo.png")
+        #test = ImageTk.PhotoImage(image1)
+        #label1 = tk.Label(image=test)
+        #label1.image = test
+
+        # Position image
+        #label1.place(x=<x_coordinate>, y=<y_coordinate>)
+
+
+        self.ball = self.create_oval(0, 0, 0, 0, fill="#ff9417", width=0)
+        #self.ball = label1
         self.ballNext = self.create_oval(0, 0, 0, 0, width=0, state="hidden")
         self.level(1)
         self.nextFrame()
@@ -135,7 +148,7 @@ class Game(tk.Canvas):
                     self.barHeight, (self.screenWidth + self.barWidth)/2, self.screenHeight))
         self.coords(self.ball, (self.screenWidth/2 - self.ballRadius, self.screenHeight - self.barHeight -
                     2*self.ballRadius, self.screenWidth/2 + self.ballRadius, self.screenHeight - self.barHeight))
-        self.itemconfig(self.ball, fill="#2c3e50")
+        self.itemconfig(self.ball, fill="#ff9417")
         self.coords(self.ballNext, tk._flatten(self.coords(self.ball)))
         self.effects = {
             "ballFire": [0, 0],
@@ -309,7 +322,7 @@ class Game(tk.Canvas):
         if self.effects["ballFire"][0]:
             self.itemconfig(self.ball, fill=self.bricksColors["p"])
         else:
-            self.itemconfig(self.ball, fill="#2c3e50")
+            self.itemconfig(self.ball, fill="#ff9417")
 
         # "barTall" effect increases the bar size.
         if self.effects["barTall"][0] != self.effectsPrev["barTall"][0]:
@@ -405,7 +418,7 @@ def eventsRelease(event):
 
 # Initialization of the window
 root = tk.Tk()
-root.title("Brick Breaker")
+root.title("Block Breaker")
 root.resizable(0, 0)
 root.bind("<Key>", eventsPress)
 root.bind("<KeyRelease>", eventsRelease)
