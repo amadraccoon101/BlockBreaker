@@ -2,9 +2,64 @@ import tkinter as tk
 import random
 import math
 import copy
+import requests
 
-# Main class: inherit from tk.Canvas class
+# Main class: inherit from tk.Canvas class\
+
+mapping = {"a":"ryyo.orr.rroyy.r",
+           "b":"yoo.oyrrooooo.y.",
+           "c":"................",
+           "d":".oryryooooyoror.",
+           "e":"oy..oooyyyoryryr",
+           "f":"o..r.ro.oryoyooy",
+           "g":"................",
+           "h":"ro.yr.r.y.y..rry",
+           "i":".ooo..r.roo.oryo",
+           "j":"ooooy.yo..ro..oo",
+           "k":"yyrrryooro..yyyo",
+           "l":"o.r.ryo.ryorr..y",
+           "m":".o.r.oo.yror.yoo",
+           "n":"y.yroyoooroooy.r",
+           "o":"................",
+           "p":"rryy.y.rr...r.yy",
+           "q":"y.yroryoyyoo.yyy",
+           "r":"r.ryrrrr.oroo.ry",
+           "s":".y.royoory.ry.r.",
+           "t":"ro..orrrr.o.oyyo",
+           "u":"y.o.oyry.yrroory",
+           "v":"roy.y.o.oyorrroo",
+           "w":"rrr..o..rrr.royo",
+           "x":"oo.oyo.ooroorory",
+           "y":".r.or.yyoyyo.ryy",
+           "z":".roooyo...yror..",
+           "0":".oo..ory.oyyroyr",
+           "1":"yrrr.oooryyroyoo",
+           "2":"ryryoo.rrrroyy.r",
+           "3":"................",
+           "4":"...ry.ryyyo.oro.",
+           "5":"...ry.ryyyo.oro.",
+           "6":".yoooryyrr.ro...",
+           "7":"................",
+           "8":"yry.o.y.ro..yoo.",
+           "9":"yoyo.o..yyryo..r"}
+
 class Game(tk.Canvas):
+    # Get mempool API
+    recent = "https://mempool.space/api/mempool/recent"
+    response = requests.get(recent).json()
+
+    txid = response[0]['txid']
+    fee = response[0]['fee']
+    vsize = response[0]['vsize']
+    value = response[0]['value']
+
+    recent_tx = "https://mempool.space/api/tx/" + txid
+    response = requests.get(recent_tx).json()
+
+    size = response['size']
+    weight = response['weight']
+
+
     textDisplayed = False
     linesNb = 20
     seconds = 0
@@ -13,8 +68,10 @@ class Game(tk.Canvas):
     barHeight = 20
     barSpeed = 10
 
-    # Ball property
-    ballSpeed = 7
+    # Ball speed - min: 1 / max: 15
+
+    ballSpeed = (fee % 9) + 1
+    print("Ball speed: " + str(ballSpeed))
 
     # Bricks properties
     bricks = []
@@ -37,9 +94,11 @@ class Game(tk.Canvas):
 
     # This method initializes some attributes: the ball, the bar...
     def __init__(self, root):
-        tk.Canvas.__init__(self, root, bg="#ffffff", bd=0, highlightthickness=0, relief="ridge", width=self.screenWidth, height=self.screenHeight)
+        tk.Canvas.__init__(self, root, bg="#ffffff", bd=0, highlightthickness=0,
+                           relief="ridge", width=self.screenWidth, height=self.screenHeight)
         self.pack()
-        self.timeContainer = self.create_text(self.screenWidth/2, self.screenHeight*4/5, text="00:00:00", fill="#cccccc", font=("Arial", 30), justify="center")
+        self.timeContainer = self.create_text(
+            self.screenWidth/2, self.screenHeight*4/5, text="00:00:00", fill="#cccccc", font=("Arial", 30), justify="center")
         self.shield = self.create_rectangle(0, 0, 0, 0, width=0)
         self.bar = self.create_rectangle(0, 0, 0, 0, fill="#7f8c8d", width=0)
         self.ball = self.create_oval(0, 0, 0, 0, width=0)
@@ -47,15 +106,21 @@ class Game(tk.Canvas):
         self.level(1)
         self.nextFrame()
 
-    # This method, called each time a level is loaded or reloaded,
-    # resets all the elements properties (size, position...).
+        # This method, called each time a level is loaded or reloaded,
+        # resets all the elements properties (size, position...).
+
     def reset(self):
-        self.barWidth = 100
+        
+        self.barWidth = ((self.weight % 10) + 4) * 10
         self.ballRadius = 7
-        self.coords(self.shield, (0, self.screenHeight-5, self.screenWidth, self.screenHeight))
-        self.itemconfig(self.shield, fill=self.bricksColors["b"], state="hidden")
-        self.coords(self.bar, ((self.screenWidth - self.barWidth)/2, self.screenHeight - self.barHeight, (self.screenWidth + self.barWidth)/2, self.screenHeight))
-        self.coords(self.ball, (self.screenWidth/2 - self.ballRadius, self.screenHeight - self.barHeight - 2*self.ballRadius, self.screenWidth/2 + self.ballRadius, self.screenHeight - self.barHeight))
+        self.coords(self.shield, (0, self.screenHeight-5,
+                    self.screenWidth, self.screenHeight))
+        self.itemconfig(
+            self.shield, fill=self.bricksColors["b"], state="hidden")
+        self.coords(self.bar, ((self.screenWidth - self.barWidth)/2, self.screenHeight -
+                    self.barHeight, (self.screenWidth + self.barWidth)/2, self.screenHeight))
+        self.coords(self.ball, (self.screenWidth/2 - self.ballRadius, self.screenHeight - self.barHeight -
+                    2*self.ballRadius, self.screenWidth/2 + self.ballRadius, self.screenHeight - self.barHeight))
         self.itemconfig(self.ball, fill="#2c3e50")
         self.coords(self.ballNext, tk._flatten(self.coords(self.ball)))
         self.effects = {
@@ -81,28 +146,31 @@ class Game(tk.Canvas):
         self.bricks = []
         try:
             file = open(str(level)+".txt")
-            content = list(file.read().replace("\n", ""))[:(self.bricksNbByLine*self.linesNb)]
+            content = list(file.read().replace("\n", ""))[
+                :(self.bricksNbByLine*self.linesNb)]
             file.close()
             for i, el in enumerate(content):
-                col = i%self.bricksNbByLine
+                col = i % self.bricksNbByLine
                 line = i//self.bricksNbByLine
                 if el != ".":
-                    self.bricks.append(self.create_rectangle(col*self.bricksWidth, line*self.bricksHeight, (col+1)*self.bricksWidth, (line+1)*self.bricksHeight, fill=self.bricksColors[el], width=2, outline="#ffffff"))
+                    self.bricks.append(self.create_rectangle(col*self.bricksWidth, line*self.bricksHeight, (col+1) *
+                                       self.bricksWidth, (line+1)*self.bricksHeight, fill=self.bricksColors[el], width=2, outline="#ffffff"))
         # If there is not any more level to load, the game is finished and the end of game screen is displayed (with player time).
         except IOError:
-            self.displayText("GAME ENDED IN\n" + "%02d mn %02d sec %02d" % (int(self.seconds)//60, int(self.seconds)%60, (self.seconds*100)%100), hide = False)
+            self.displayText("GAME ENDED IN\n" + "%02d mn %02d sec %02d" % (int(
+                self.seconds)//60, int(self.seconds) % 60, (self.seconds*100) % 100), hide=False)
             return
         self.displayText("LEVEL\n"+str(self.levelNum))
 
     # This method, called each 1/60 of seconde, computes again
     # the properties of all elements (positions, collisions, effects...).
     def nextFrame(self):
-        if self.ballThrown and not(self.textDisplayed):
+        if self.ballThrown and not (self.textDisplayed):
             self.moveBall()
 
-        if not(self.textDisplayed):
+        if not (self.textDisplayed):
             self.updateTime()
-            
+
         self.updateEffects()
 
         if self.keyPressed[0]:
@@ -110,12 +178,14 @@ class Game(tk.Canvas):
         elif self.keyPressed[1]:
             self.moveBar(game.barSpeed)
 
-        if not(self.textDisplayed):
+        if not (self.textDisplayed):
             if self.won:
-                self.displayText("WON!", callback = lambda: self.level(self.levelNum+1))
+                self.displayText(
+                    "WON!", callback=lambda: self.level(self.levelNum+1))
             elif self.losed:
-                self.displayText("LOST!", callback = lambda: self.level(self.levelNum))
-        
+                self.displayText(
+                    "LOST!", callback=lambda: self.level(self.levelNum))
+
         self.after(int(1000/60), self.nextFrame)
 
     # This method, called when left or right arrows are pressed,
@@ -127,9 +197,9 @@ class Game(tk.Canvas):
             x = -barCoords[0]
         elif barCoords[2] > self.screenWidth - 10 and x > 0:
             x = self.screenWidth - barCoords[2]
-        
+
         self.move(self.bar, x, 0)
-        if not(self.ballThrown):
+        if not (self.ballThrown):
             self.move(self.ball, x, 0)
 
     # This method, called at each frame, moves the ball.
@@ -138,9 +208,10 @@ class Game(tk.Canvas):
     #     - next ball position using "ballAngle" and "ballSpeed" attributes
     #     - effects to the ball and the bar during collision with special bricks
     def moveBall(self):
-        self.move(self.ballNext, self.ballSpeed*math.cos(self.ballAngle), -self.ballSpeed*math.sin(self.ballAngle))
+        self.move(self.ballNext, self.ballSpeed*math.cos(self.ballAngle), -
+                  self.ballSpeed*math.sin(self.ballAngle))
         ballNextCoords = self.coords(self.ballNext)
-        
+
         # Collisions computation between ball and bricks
         i = 0
         while i < len(self.bricks):
@@ -164,18 +235,20 @@ class Game(tk.Canvas):
                     self.effects["ballTall"][0] = 1
                     self.effects["ballTall"][1] = 240
 
-                if not(self.effects["ballFire"][0]):
+                if not (self.effects["ballFire"][0]):
                     if collision == 1 or collision == 3:
                         self.ballAngle = math.radians(180) - self.ballAngle
                     if collision == 2 or collision == 4:
                         self.ballAngle = -self.ballAngle
-                
+
                 # If the brick is red, it becomes orange.
                 if brickColor == self.bricksColors["r"]:
-                    self.itemconfig(self.bricks[i], fill=self.bricksColors["o"])
+                    self.itemconfig(
+                        self.bricks[i], fill=self.bricksColors["o"])
                 # If the brick is orange, it becomes yellow.
                 elif brickColor == self.bricksColors["o"]:
-                    self.itemconfig(self.bricks[i], fill=self.bricksColors["y"])
+                    self.itemconfig(
+                        self.bricks[i], fill=self.bricksColors["y"])
                 # If the brick is yellow (or an other color except red/orange), it is destroyed.
                 else:
                     self.delete(self.bricks[i])
@@ -189,21 +262,24 @@ class Game(tk.Canvas):
             self.ballAngle = math.radians(180) - self.ballAngle
         elif ballNextCoords[1] < 0:
             self.ballAngle = -self.ballAngle
-        elif not(self.collision(self.ballNext, self.bar)):
+        elif not (self.collision(self.ballNext, self.bar)):
             ballCenter = self.coords(self.ball)[0] + self.ballRadius
             barCenter = self.coords(self.bar)[0] + self.barWidth/2
             angleX = ballCenter - barCenter
             angleOrigin = (-self.ballAngle) % (3.14159*2)
             angleComputed = math.radians(-70/(self.barWidth/2)*angleX + 90)
-            self.ballAngle = (1 - (abs(angleX)/(self.barWidth/2))**0.25)*angleOrigin + ((abs(angleX)/(self.barWidth/2))**0.25)*angleComputed
-        elif not(self.collision(self.ballNext, self.shield)):
+            self.ballAngle = (1 - (abs(angleX)/(self.barWidth/2))**0.25) * \
+                angleOrigin + ((abs(angleX)/(self.barWidth/2))
+                               ** 0.25)*angleComputed
+        elif not (self.collision(self.ballNext, self.shield)):
             if self.effects["shield"][0]:
                 self.ballAngle = -self.ballAngle
                 self.effects["shield"][0] = 0
-            else :
+            else:
                 self.losed = True
 
-        self.move(self.ball, self.ballSpeed*math.cos(self.ballAngle), -self.ballSpeed*math.sin(self.ballAngle))
+        self.move(self.ball, self.ballSpeed*math.cos(self.ballAngle), -
+                  self.ballSpeed*math.sin(self.ballAngle))
         self.coords(self.ballNext, tk._flatten(self.coords(self.ball)))
 
     # This method, called at each frame, manages the remaining time
@@ -214,7 +290,7 @@ class Game(tk.Canvas):
                 self.effects[key][1] -= 1
             if self.effects[key][1] == 0:
                 self.effects[key][0] = 0
-        
+
         # "ballFire" effect allows the ball to destroy bricks without boucing on them.
         if self.effects["ballFire"][0]:
             self.itemconfig(self.ball, fill=self.bricksColors["p"])
@@ -226,18 +302,22 @@ class Game(tk.Canvas):
             diff = self.effects["barTall"][0] - self.effectsPrev["barTall"][0]
             self.barWidth += diff*60
             coords = self.coords(self.bar)
-            self.coords(self.bar, tk._flatten((coords[0]-diff*30, coords[1], coords[2]+diff*30, coords[3])))
+            self.coords(self.bar, tk._flatten(
+                (coords[0]-diff*30, coords[1], coords[2]+diff*30, coords[3])))
         # "ballTall" effect increases the ball size.
         if self.effects["ballTall"][0] != self.effectsPrev["ballTall"][0]:
-            diff = self.effects["ballTall"][0] - self.effectsPrev["ballTall"][0]
+            diff = self.effects["ballTall"][0] - \
+                self.effectsPrev["ballTall"][0]
             self.ballRadius += diff*10
             coords = self.coords(self.ball)
-            self.coords(self.ball, tk._flatten((coords[0]-diff*10, coords[1]-diff*10, coords[2]+diff*10, coords[3]+diff*10)))
-        
+            self.coords(self.ball, tk._flatten(
+                (coords[0]-diff*10, coords[1]-diff*10, coords[2]+diff*10, coords[3]+diff*10)))
+
         # "shield" effect allows the ball to bounce once
         # at the bottom of the screen (it's like an additional life).
         if self.effects["shield"][0]:
-            self.itemconfig(self.shield, fill=self.bricksColors["b"], state="normal")
+            self.itemconfig(
+                self.shield, fill=self.bricksColors["b"], state="normal")
         else:
             self.itemconfig(self.shield, state="hidden")
 
@@ -246,13 +326,16 @@ class Game(tk.Canvas):
     # This method updates game time (displayed in the background).
     def updateTime(self):
         self.seconds += 1/60
-        self.itemconfig(self.timeContainer, text="%02d:%02d:%02d" % (int(self.seconds)//60, int(self.seconds)%60, (self.seconds*100)%100))
+        self.itemconfig(self.timeContainer, text="%02d:%02d:%02d" % (
+            int(self.seconds)//60, int(self.seconds) % 60, (self.seconds*100) % 100))
 
     # This method displays some text.
-    def displayText(self, text, hide = True, callback = None):
+    def displayText(self, text, hide=True, callback=None):
         self.textDisplayed = True
-        self.textContainer = self.create_rectangle(0, 0, self.screenWidth, self.screenHeight, fill="#ffffff", width=0, stipple="gray50")
-        self.text = self.create_text(self.screenWidth/2, self.screenHeight/2, text=text, font=("Arial", 25), justify="center")
+        self.textContainer = self.create_rectangle(
+            0, 0, self.screenWidth, self.screenHeight, fill="#ffffff", width=0, stipple="gray50")
+        self.text = self.create_text(
+            self.screenWidth/2, self.screenHeight/2, text=text, font=("Arial", 25), justify="center")
         if hide:
             self.after(3000, self.hideText)
         if callback != None:
@@ -270,7 +353,7 @@ class Game(tk.Canvas):
 
         objectCoords = self.coords(el1)
         obstacleCoords = self.coords(el2)
-        
+
         if objectCoords[2] < obstacleCoords[0] + 5:
             collisionCounter = 1
         if objectCoords[3] < obstacleCoords[1] + 5:
@@ -279,7 +362,7 @@ class Game(tk.Canvas):
             collisionCounter = 3
         if objectCoords[1] > obstacleCoords[3] - 5:
             collisionCounter = 4
-                
+
         return collisionCounter
 
 
@@ -291,13 +374,15 @@ def eventsPress(event):
         game.keyPressed[0] = 1
     elif event.keysym == "Right":
         game.keyPressed[1] = 1
-    elif event.keysym == "space" and not(game.textDisplayed):
+    elif event.keysym == "space" and not (game.textDisplayed):
         game.ballThrown = True
 
 # This function is called on key up.
+
+
 def eventsRelease(event):
     global game, hasEvent
-    
+
     if event.keysym == "Left":
         game.keyPressed[0] = 0
     elif event.keysym == "Right":
@@ -307,7 +392,7 @@ def eventsRelease(event):
 # Initialization of the window
 root = tk.Tk()
 root.title("Brick Breaker")
-root.resizable(0,0)
+root.resizable(0, 0)
 root.bind("<Key>", eventsPress)
 root.bind("<KeyRelease>", eventsRelease)
 
