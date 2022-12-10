@@ -46,6 +46,7 @@ mapping = {"a":"bbbtbtyy.ryotott",
            "9":"yoyo.o..yyryo..r"}
 
 class Game(tk.Canvas):
+    
     # Get mempool API
     recent = "https://mempool.space/api/mempool/recent"
     response = requests.get(recent).json()
@@ -61,7 +62,6 @@ class Game(tk.Canvas):
     size = response['size']
     weight = response['weight']
 
-
     textDisplayed = False
     linesNb = 20
     seconds = 0
@@ -70,17 +70,23 @@ class Game(tk.Canvas):
     barHeight = 20
     barSpeed = 10
 
+    print("Transaction weight: " + str(weight))
+    barWidth = ((weight % 10) + 4) * 10
+    print("Bar width: " + str(barWidth))
+
+
     # Ball speed - min: 1 / max: 15
 
     ballSpeed = (fee % 9) + 1
+    print("Transaction fee: " + str(fee))
     print("Ball speed: " + str(ballSpeed))
 
     txidChars = list(txid)
 
     f = open("1.txt", "w")
     k = 0
+    print(txid)
     while k < 14:
-        print(mapping.get(txidChars[k]))
         f.write(mapping.get(txidChars[k]) + '\n')
         k = k + 1
     while k < 19:
@@ -112,22 +118,22 @@ class Game(tk.Canvas):
     def __init__(self, root):
         tk.Canvas.__init__(self, root, bg="#ffffff", bd=0, highlightthickness=0,
                            relief="ridge", width=self.screenWidth, height=self.screenHeight)
+
+        # filename = tk.PhotoImage(file = "bitcoin.png")
+        # background_label = tk.Label(self, image=filename)
+        # background_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+        img = ImageTk.PhotoImage(Image.open("bitcoin_3.jpg").resize((self.screenWidth, self.screenHeight), Image.ANTIALIAS))
+        self.background = img  # Keep a reference in case this code is put in a function.
+        bg = self.create_image(0, 0, anchor=tk.NW, image=img)
+
         self.pack()
         self.timeContainer = self.create_text(
             self.screenWidth/2, self.screenHeight*4/5, text="00:00:00", fill="#cccccc", font=("Arial", 30), justify="center")
         self.shield = self.create_rectangle(0, 0, 0, 0, width=0)
         self.bar = self.create_rectangle(0, 0, 0, 0, fill="#7f8c8d", width=0)
-        
-        #image1 = Image.open("Bitcoin-Logo.png")
-        #test = ImageTk.PhotoImage(image1)
-        #label1 = tk.Label(image=test)
-        #label1.image = test
 
-        # Position image
-        #label1.place(x=<x_coordinate>, y=<y_coordinate>)
-
-
-        self.ball = self.create_oval(0, 0, 0, 0, fill="#ff9417", width=0)
+        self.ball = self.create_oval(0, 0, 0, 0, fill="#000000", width=0)
         #self.ball = label1
         self.ballNext = self.create_oval(0, 0, 0, 0, width=0, state="hidden")
         self.level(1)
@@ -137,8 +143,42 @@ class Game(tk.Canvas):
         # resets all the elements properties (size, position...).
 
     def reset(self):
-        
+        # Get mempool API
+        self.recent = "https://mempool.space/api/mempool/recent"
+        self.response = requests.get(self.recent).json()
+
+        self.txid = self.response[0]['txid']
+        self.fee = self.response[0]['fee']
+        self.vsize = self.response[0]['vsize']
+        self.value = self.response[0]['value']
+
+        self.recent_tx = "https://mempool.space/api/tx/" + self.txid
+        self.response = requests.get(self.recent_tx).json()
+
+        self.size = self.response['size']
+        self.weight = self.response['weight']
+
+        self.ballSpeed = (self.fee % 9) + 1
+        print("Transaction fee: " + str(self.fee))
+        print("Ball speed: " + str(self.ballSpeed))
+
+        self.txidChars = list(self.txid)
+
+        f = open("1.txt", "w")
+        k = 0
+        print(self.txid)
+        while k < 14:
+            f.write(mapping.get(self.txidChars[k]) + '\n')
+            k = k + 1
+        while k < 19:
+            f.write(mapping.get('7') + '\n')
+            k = k + 1
+        f.write(mapping.get('7'))
+        f.close()
+
+        print("Transaction weight: " + str(self.weight))
         self.barWidth = ((self.weight % 10) + 4) * 10
+        print("Bar width: " + str(self.barWidth))
         self.ballRadius = 7
         self.coords(self.shield, (0, self.screenHeight-5,
                     self.screenWidth, self.screenHeight))
@@ -148,7 +188,7 @@ class Game(tk.Canvas):
                     self.barHeight, (self.screenWidth + self.barWidth)/2, self.screenHeight))
         self.coords(self.ball, (self.screenWidth/2 - self.ballRadius, self.screenHeight - self.barHeight -
                     2*self.ballRadius, self.screenWidth/2 + self.ballRadius, self.screenHeight - self.barHeight))
-        self.itemconfig(self.ball, fill="#ff9417")
+        self.itemconfig(self.ball, fill="#000000")
         self.coords(self.ballNext, tk._flatten(self.coords(self.ball)))
         self.effects = {
             "ballFire": [0, 0],
@@ -208,7 +248,7 @@ class Game(tk.Canvas):
         if not (self.textDisplayed):
             if self.won:
                 self.displayText(
-                    "WON!", callback=lambda: self.level(self.levelNum+1))
+                    "WON!", callback=lambda: self.level(self.levelNum))
             elif self.losed:
                 self.displayText(
                     "LOST!", callback=lambda: self.level(self.levelNum))
@@ -322,7 +362,7 @@ class Game(tk.Canvas):
         if self.effects["ballFire"][0]:
             self.itemconfig(self.ball, fill=self.bricksColors["p"])
         else:
-            self.itemconfig(self.ball, fill="#ff9417")
+            self.itemconfig(self.ball, fill="#000000")
 
         # "barTall" effect increases the bar size.
         if self.effects["barTall"][0] != self.effectsPrev["barTall"][0]:
